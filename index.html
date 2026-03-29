@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#FF6B35">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="VoiceMemo">
+    <meta name="description" content="VoiceMemo - Registra, trascrivi e salva i tuoi memo vocali">
+
+
+    <!-- Icons for PWA -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23FF6B35' width='192' height='192'/><circle cx='96' cy='96' r='50' fill='%23FFFFFF'/><path d='M96 70 L96 122 M80 96 L112 96' stroke='%23FF6B35' stroke-width='8' stroke-linecap='round'/></svg>">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23FF6B35' width='180' height='180'/><circle cx='90' cy='90' r='45' fill='%23FFFFFF'/><path d='M90 65 L90 115 M75 90 L105 90' stroke='%23FF6B35' stroke-width='7' stroke-linecap='round'/></svg>">
+
+    <title>VoiceMemo</title>
+
+    <style>
+        /* CSS Variables for theming */
+        :root {
+            --primary-color: #FF6B35;
+            --secondary-color: #F7931E;
+            --accent-color: #FDB750;
+            --dark-bg: #1A1A1A;
+            --dark-bg-secondary: #2D2D2D;
+            --dark-bg-tertiary: #3A3A3A;
+            --text-primary: #FFFFFF;
+            --text-secondary: #B0B0B0;
+            --text-tertiary: #808080;
+            --border-color: #404040;
+            --success-color: #4CAF50;
+            --danger-color: #FF5252;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --radius-full: 50%;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --safe-top: env(safe-area-inset-top, 0);
+            --safe-bottom: env(safe-area-inset-bottom, 0);
+            --safe-left: env(safe-area-inset-left, 0);
+            --safe-right: env(safe-area-inset-right, 0);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -webkit-touch-callout: none;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            padding-top: var(--safe-top);
+            padding-bottom: var(--safe-bottom);
+            padding-left: var(--safe-left);
+            padding-right: var(--safe-right);
+        }
+
+        /* Login Screen */
+        #loginScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: var(--dark-bg);
+        }
+
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .logo-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            width: 100px;
+            height: 100px;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            box-shadow: 0 10px 40px rgba(255, 107, 53, 0.3);
+        }
+
+        .app-title {
+            font-size: 32px;
+            font-weight: 700;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .app-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 280px;
+            line-height: 1.5;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: var(--radius-lg);
+            background: var(--primary-color);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: var(--transition);
+            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(255, 107, 53, 0.4);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        /* Main App Screen */
+        #mainScreen {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            background: var(--dark-bg);
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--dark-bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .app-name {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .top-bar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.05);
+        }
+
+        .logout-button {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            border: none;
+            background: var(--dark-bg-tertiary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: var(--transition);
+        }
+
+        .logout-button:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        /* Memos List Area */
+        .memos-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .memos-scroll {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 16px 0;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .memos-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .memos-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .memos-scroll::-webkit-scrollbar-thumb {
+            background: var(--text-tertiary);
+            border-radius: 3px;
+        }
+
+        .memos-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Memo Item */
+        .memo-item {
+            padding: 12px 20px;
+            margin-bottom: 8px;
+            background: var(--dark-bg-secondary);
+            border-left: 3px solid var(--primary-color);
+            cursor: pointer;
+            transition: var(--transition);
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+        }
+
+        .memo-item:hover {
+            background: var(--dark-bg-tertiary);
+            padding-left: 24px;
+        }
+
+        .memo-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .memo-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .memo-date {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .memo-duration {
+            font-size: 11px;
+            padding: 2px 8px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 4px;
+        }
+
+        .memo-preview {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 16px;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 60px;
+            opacity: 0.3;
+        }
+
+        .empty-state-text {
+            font-size: 18px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .empty-state-subtext {
+            font-size: 14px;
+            color: var(--text-tertiary);
+            max-width: 280px;
+        }
+
+        /* Detail View */
+        #memoDetail {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--dark-bg);
+            z-index: 1000;
+            flex-direction: column;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #memoDetail.active {
+            display: flex;
+        }
+
+        .detail-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .detail-close-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-full);
+            border: none;
+            background: var(--dark-bg-secondary);
+            color: var(--text-primary);
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            margin-bottom: 16px;
+        }
+
+        .detail-close-btn:hover {
+            background: var(--dark-bg-tertiary);
+        }
+
+        .detail-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .detail-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .detail-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .detail-text {
+            font-size: 16px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .detail-actions {
+            display: flex;
+            gap: 12px;
+            padding: 20px;
+            background: var(--dark-bg-secondary);
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .detail-action-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-download {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-download:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-delete {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* Recording Area */
+        .recording-area {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .transcription-display {
+            width: 100%;
+            padding: 16px;
+            background: var(--dark-bg-secondary);
+            border-radius: var(--radius-md);
+            min-height: 60px;
+            max-height: 120px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .transcription-display.recording {
+            border-color: var(--primary-color);
+            background: rgba(255, 107, 53, 0.05);
+        }
+
+        .transcription-display.empty {
+            color: var(--text-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .recording-timer {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+            min-height: 20px;
+        }
+
+        /* Record Button */
+        .record-button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .record-button {
+            width: 120px;
+            height: 120px;
+            border-radius: var(--radius-full);
+            border: none;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.3);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .record-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .record-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 40px rgba(255, 107, 53, 0.4);
+        }
+
+        .record-button:active {
+            transform: scale(0.95);
+        }
+
+        /* Recording state animations */
+        .record-button.recording {
+            animation: pulse-record 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-record {
+            0%, 100% {
+                box-shadow: 0 8px 32px rgba(255, 107, 53, 0.3), 0 0 0 0 rgba(255, 107, 53, 0.7);
+            }
+            50% {
+                box-shadow: 0 8px 32px rgba(255, 107, 53, 0.4), 0 0 0 20px rgba(255, 107, 53, 0);
+            }
+        }
+
+        .record-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--danger-color);
+            font-weight: 600;
+        }
+
+        .record-indicator-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: var(--radius-full);
+            background: var(--danger-color);
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 49%, 100% {
+                opacity: 1;
+            }
+            50%, 99% {
+                opacity: 0.3;
+            }
+        }
+
+        /* Modal for confirmations */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--dark-bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 90%;
+            width: 100%;
+            max-width: 340px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .modal-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .modal-button {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 14px;
+        }
+
+        .modal-button.primary {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .modal-button.primary:hover {
+            opacity: 0.9;
+        }
+
+        .modal-button.secondary {
+            background: var(--dark-bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .modal-button.secondary:hover {
+            background: var(--border-color);
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            padding: 14px 16px;
+            background: var(--dark-bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 14px;
+            z-index: 3000;
+            animation: toast-in 0.3s ease-out;
+        }
+
+        @keyframes toast-in {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .toast.success {
+            border-left: 3px solid var(--success-color);
+        }
+
+        .toast.error {
+            border-left: 3px solid var(--danger-color);
+        }
+
+        .toast.info {
+            border-left: 3px solid var(--primary-color);
+        }
+
+        /* Loading state */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--text-tertiary);
+            border-top-color: var(--primary-color);
+            border-radius: var(--radius-full);
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive design */
+        @media (max-width: 480px) {
+            .record-button {
+                width: 100px;
+                height: 100px;
+                font-size: 40px;
+            }
+
+            .app-title {
+                font-size: 28px;
+            }
+
+            .detail-title {
+                font-size: 20px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .login-container {
+                max-width: 500px;
+            }
+
+            #mainScreen {
+                max-width: 100vw;
+            }
+
+            .memos-scroll {
+                padding: 20px;
+            }
+
+            .memo-item {
+                border-radius: var(--radius-md);
+                margin-bottom: 12px;
+                border-left: none;
+                border-bottom: 2px solid var(--primary-color);
+            }
+
+            .memo-item:hover {
+                padding-left: 20px;
+                background: var(--dark-bg-tertiary);
+            }
+        }
+
+        /* Error state */
+        .error-message {
+            padding: 12px 16px;
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid var(--danger-color);
+            border-radius: var(--radius-md);
+            color: var(--danger-color);
+            font-size: 14px;
+            text-align: center;
+            margin: 0 20px 16px;
+        }
+
+        /* Status message */
+        .status-message {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 8px 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen">
+        <div class="login-container">
+            <div class="logo-section">
+                <div class="logo">ð¤</div>
+                <div class="app-title">VoiceMemo</div>
+                <div class="app-subtitle">Registra, trascrivi e condividi i tuoi memo vocali</div>
+            </div>
+            <button class="login-button" id="googleLoginBtn">
+                <span>ð</span>
+                <span>Accedi con Google</span>
+            </button>
+            <div class="status-message" id="loginStatus"></div>
+        </div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="mainScreen" style="display: none;">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="app-name">VoiceMemo</div>
+            <div class="top-bar-actions">
+                <div class="user-avatar" id="userAvatar" title="Profilo utente">U</div>
+                <button class="logout-button" id="logoutBtn" title="Esci">ðª</button>
+            </div>
+        </div>
+
+        <!-- Memos List -->
+        <div class="memos-container">
+            <div class="memos-scroll" id="memosList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">ð¤</div>
+                    <div class="empty-state-text">Nessun memo ancora</div>
+                    <div class="empty-state-subtext">Inizia a registrare il tuo primo memo vocale premendo il pulsante sottostante</div>
+                </div>
+            </div>
+
+            <!-- Recording Area -->
+            <div class="recording-area">
+                <div class="transcription-display empty" id="transcriptionDisplay">
+                    Inizia a parlare...
+                </div>
+                <div class="recording-timer" id="recordingTimer"></div>
+                <div class="record-button-container">
+                    <button class="record-button" id="recordButton" title="Registra">ðï¸</button>
+                    <div class="record-indicator" id="recordIndicator" style="display: none;">
+                        <div class="record-indicator-dot"></div>
+                        <span>Registrazione in corso</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memo Detail View -->
+    <div id="memoDetail">
+        <div class="detail-header">
+            <button class="detail-close-btn" id="detailCloseBtn">â</button>
+            <div class="detail-title" id="detailTitle">Titolo memo</div>
+            <div class="detail-date" id="detailDate">Data</div>
+        </div>
+        <div class="detail-content">
+            <div class="detail-text" id="detailText"></div>
+        </div>
+        <div class="detail-actions">
+            <button class="detail-action-btn btn-download" id="downloadBtn">
+                <span>â¬ï¸</span>
+                <span>Scarica</span>
+            </button>
+            <button class="detail-action-btn btn-delete" id="deleteBtn">
+                <span>ðï¸</span>
+                <span>Elimina</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+            <div class="modal-title">Elimina memo?</div>
+            <div class="modal-text">Questa azione non puÃ² essere annullata.</div>
+            <div class="modal-buttons">
+                <button class="modal-button secondary" id="deleteCancelBtn">Annulla</button>
+                <button class="modal-button primary" id="deleteConfirmBtn">Elimina</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // ============================================
+        // FIREBASE CONFIGURATION
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDipe4MqFd92osV7PiS7ssD6dZ8nNek5to",
+            authDomain: "voicememo-5c97d.firebaseapp.com",
+            projectId: "voicememo-5c97d",
+            storageBucket: "voicememo-5c97d.firebasestorage.app",
+            messagingSenderId: "152852269921",
+            appId: "1:152852269921:web:653af3882971666bf65320",
+            measurementId: "G-RKVWWNBTYS"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
+        let isRecording = false;
+        let recordingStartTime = null;
+        let recordingTimer = null;
+        let currentUser = null;
+        let currentMemoId = null;
+        let recognition = null;
+        let currentTranscription = '';
+        let interimTranscription = '';
+
+        // Check Speech Recognition API support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            console.error('Speech Recognition API not supported');
+        }
+
+        // ============================================
+        // UI ELEMENTS
+        // ============================================
+        const loginScreen = document.getElementById('loginScreen');
+        const mainScreen = document.getElementById('mainScreen');
+        const googleLoginBtn = document.getElementById('googleLoginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userAvatar = document.getElementById('userAvatar');
+        const recordButton = document.getElementById('recordButton');
+        const recordIndicator = document.getElementById('recordIndicator');
+        const recordingTimer = document.getElementById('recordingTimer');
+        const transcriptionDisplay = document.getElementById('transcriptionDisplay');
+        const memosList = document.getElementById('memosList');
+        const memoDetail = document.getElementById('memoDetail');
+        const detailCloseBtn = document.getElementById('detailCloseBtn');
+        const detailTitle = document.getElementById('detailTitle');
+        const detailDate = document.getElementById('detailDate');
+        const detailText = document.getElementById('detailText');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const deleteModal = document.getElementById('deleteModal');
+        const deleteCancelBtn = document.getElementById('deleteCancelBtn');
+        const deleteConfirmBtn = document.getElementById('deleteConfirmBtn');
+
+        // ============================================
+        // AUTHENTICATION
+        // ============================================
+        function showLoginScreen() {
+            loginScreen.style.display = 'flex';
+            mainScreen.style.display = 'none';
+            memoDetail.classList.remove('active');
+        }
+
+        function showMainScreen() {
+            loginScreen.style.display = 'none';
+            mainScreen.style.display = 'flex';
+            memoDetail.classList.remove('active');
+            loadUserMemos();
+        }
+
+        googleLoginBtn.addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .catch(error => {
+                    showToast('Errore di accesso: ' + error.message, 'error');
+                    console.error('Login error:', error);
+                });
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut()
+                .catch(error => {
+                    showToast('Errore durante l\'uscita: ' + error.message, 'error');
+                });
+        });
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                updateUserUI();
+                showMainScreen();
+            } else {
+                currentUser = null;
+                showLoginScreen();
+            }
+        });
+
+        function updateUserUI() {
+            if (currentUser) {
+                const initials = currentUser.displayName
+                    ? currentUser.displayName.split(' ').map(n => n[0]).join('').toUpperCase()
+                    : currentUser.email[0].toUpperCase();
+                userAvatar.textContent = initials;
+                userAvatar.title = currentUser.displayName || currentUser.email;
+            }
+        }
+
+        // ============================================
+        // SPEECH RECOGNITION
+        // ============================================
+        function initializeSpeechRecognition() {
+            if (!SpeechRecognition) {
+                showToast('Speech Recognition non Ã¨ supportato in questo dispositivo', 'error');
+                return false;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'it-IT';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                currentTranscription = '';
+                interimTranscription = '';
+                recordButton.classList.add('recording');
+                recordIndicator.style.display = 'flex';
+                transcriptionDisplay.classList.add('recording');
+                transcriptionDisplay.classList.remove('empty');
+                updateTranscriptionDisplay();
+                startRecordingTimer();
+            };
+
+            recognition.onresult = (event) => {
+                interimTranscription = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        currentTranscription += transcript + ' ';
+                    } else {
+                        interimTranscription += transcript;
+                    }
+                }
+                updateTranscriptionDisplay();
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                if (event.error === 'no-speech') {
+                    showToast('Nessun discorso rilevato. Riprova.', 'info');
+                } else if (event.error !== 'aborted') {
+                    showToast('Errore di riconoscimento vocale: ' + event.error, 'error');
+                }
+            };
+
+            recognition.onend = () => {
+                if (isRecording) {
+                    isRecording = false;
+                    recordButton.classList.remove('recording');
+                    recordIndicator.style.display = 'none';
+                    transcriptionDisplay.classList.remove('recording');
+                    stopRecordingTimer();
+
+                    if (currentTranscription.trim()) {
+                        saveTranscription();
+                    } else {
+                        transcriptionDisplay.classList.add('empty');
+                        transcriptionDisplay.textContent = 'Inizia a parlare...';
+                        recordingTimer.textContent = '';
+                    }
+                }
+            };
+
+            return true;
+        }
+
+        function updateTranscriptionDisplay() {
+            const fullText = currentTranscription + interimTranscription;
+            transcriptionDisplay.textContent = fullText || 'Ascolta...';
+        }
+
+        // ============================================
+        // RECORDING CONTROLS
+        // ============================================
+        recordButton.addEventListener('click', () => {
+            if (!recognition) {
+                if (!initializeSpeechRecognition()) {
+                    return;
+                }
+            }
+
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    // Recognition already started
+                    console.log('Recognition already in progress');
+                }
+            }
+        });
+
+        function startRecordingTimer() {
+            recordingStartTime = Date.now();
+            recordingTimer.textContent = '00:00';
+
+            recordingTimer.timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                recordingTimer.textContent =
+                    String(minutes).padStart(2, '0') + ':' +
+                    String(seconds).padStart(2, '0');
+            }, 1000);
+        }
+
+        function stopRecordingTimer() {
+            if (recordingTimer.timerInterval) {
+                clearInterval(recordingTimer.timerInterval);
+                recordingTimer.timerInterval = null;
+            }
+        }
+
+        // ============================================
+        // FIRESTORE OPERATIONS
+        // ============================================
+        function generateMemoTitle(text) {
+            // Take first sentence or first 50 chars
+            const firstSentenceMatch = text.match(/^[^.!?]*[.!?]/);
+            if (firstSentenceMatch) {
+                const title = firstSentenceMatch[0].trim();
+                return title.length > 50 ? title.substring(0, 50) + '...' : title;
+            }
+            return text.substring(0, 50) + (text.length > 50 ? '...' : '');
+        }
+
+        async function saveTranscription() {
+            if (!currentUser || !currentTranscription.trim()) {
+                return;
+            }
+
+            try {
+                const title = generateMemoTitle(currentTranscription);
+                const now = new Date();
+
+                const memoData = {
+                    title: title,
+                    text: currentTranscription.trim(),
+                    timestamp: now,
+                    duration: recordingTimer.textContent,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection('users').doc(currentUser.uid).collection('memos').add(memoData);
+
+                showToast('Memo salvato con successo', 'success');
+
+                // Reset recording state
+                currentTranscription = '';
+                interimTranscription = '';
+                recordingTimer.textContent = '';
+                loadUserMemos();
+            } catch (error) {
+                console.error('Error saving memo:', error);
+                showToast('Errore nel salvataggio del memo: ' + error.message, 'error');
+            }
+        }
+
+        async function loadUserMemos() {
+            if (!currentUser) return;
+
+            try {
+                const snapshot = await db
+                    .collection('users')
+                    .doc(currentUser.uid)
+                    .collection('memos')
+                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                const memos = [];
+                snapshot.forEach(doc => {
+                    memos.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                renderMemosList(memos);
+            } catch (error) {
+                console.error('Error loading memos:', error);
+                // Handle Firestore not configured gracefully
+                if (error.code === 'failed-precondition') {
+                    memosList.innerHTML = '<div class="error-message">â ï¸ Firestore non Ã¨ configurato. Controlla le credenziali Firebase.</div>';
+                }
+            }
+        }
+
+        function renderMemosList(memos) {
+            if (memos.length === 0) {
+                memosList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">ð¤</div>
+                        <div class="empty-state-text">Nessun memo ancora</div>
+                        <div class="empty-state-subtext">Inizia a registrare il tuo primo memo vocale</div>
+                    </div>
+                `;
+                return;
+            }
+
+            memosList.innerHTML = memos.map(memo => `
+                <div class="memo-item" data-id="${memo.id}">
+                    <div class="memo-title">${escapeHtml(memo.title)}</div>
+                    <div class="memo-meta">
+                        <div class="memo-date">${formatDate(memo.timestamp)}</div>
+                        ${memo.duration ? `<div class="memo-duration">${memo.duration}</div>` : ''}
+                    </div>
+                    <div class="memo-preview">${escapeHtml(memo.text.substring(0, 150))}</div>
+                </div>
+            `).join('');
+
+            // Add click handlers
+            document.querySelectorAll('.memo-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const memoId = item.getAttribute('data-id');
+                    showMemoDetail(memos.find(m => m.id === memoId));
+                });
+            });
+        }
+
+        // ============================================
+        // MEMO DETAIL VIEW
+        // ============================================
+        function showMemoDetail(memo) {
+            currentMemoId = memo.id;
+            detailTitle.textContent = memo.title;
+            detailDate.textContent = formatDateTime(memo.timestamp);
+            detailText.textContent = memo.text;
+            memoDetail.classList.add('active');
+        }
+
+        detailCloseBtn.addEventListener('click', () => {
+            memoDetail.classList.remove('active');
+            currentMemoId = null;
+        });
+
+        downloadBtn.addEventListener('click', async () => {
+            if (!currentMemoId || !currentUser) return;
+
+            try {
+                const memo = await db
+                    .collection('users')
+                    .doc(currentUser.uid)
+                    .collection('memos')
+                    .doc(currentMemoId)
+                    .get();
+
+                if (memo.exists) {
+                    const data = memo.data();
+                    const filename = `${formatDateForFile(data.timestamp)}_${data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.txt`;
+
+                    const blob = new Blob([data.text], { type: 'text/plain;charset=utf-8' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+
+                    showToast('Memo scaricato', 'success');
+                }
+            } catch (error) {
+                console.error('Error downloading memo:', error);
+                showToast('Errore nel download: ' + error.message, 'error');
+            }
+        });
+
+        deleteBtn.addEventListener('click', () => {
+            deleteModal.classList.add('active');
+        });
+
+        deleteCancelBtn.addEventListener('click', () => {
+            deleteModal.classList.remove('active');
+        });
+
+        deleteConfirmBtn.addEventListener('click', async () => {
+            if (!currentMemoId || !currentUser) return;
+
+            try {
+                await db
+                    .collection('users')
+                    .doc(currentUser.uid)
+                    .collection('memos')
+                    .doc(currentMemoId)
+                    .delete();
+
+                deleteModal.classList.remove('active');
+                memoDetail.classList.remove('active');
+                currentMemoId = null;
+                showToast('Memo eliminato', 'success');
+                loadUserMemos();
+            } catch (error) {
+                console.error('Error deleting memo:', error);
+                showToast('Errore nell\'eliminazione: ' + error.message, 'error');
+            }
+        });
+
+        // Close detail when clicking outside modal area
+        memoDetail.addEventListener('click', (e) => {
+            if (e.target === memoDetail) {
+                memoDetail.classList.remove('active');
+                currentMemoId = null;
+            }
+        });
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        function formatDate(date) {
+            if (!date) return '';
+
+            const d = date instanceof firebase.firestore.Timestamp ? date.toDate() : new Date(date);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            if (d.toDateString() === today.toDateString()) {
+                return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+            } else if (d.toDateString() === yesterday.toDateString()) {
+                return 'Ieri';
+            } else {
+                return d.toLocaleDateString('it-IT', { month: 'short', day: 'numeric' });
+            }
+        }
+
+        function formatDateTime(date) {
+            if (!date) return '';
+            const d = date instanceof firebase.firestore.Timestamp ? date.toDate() : new Date(date);
+            return d.toLocaleDateString('it-IT', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatDateForFile(date) {
+            if (!date) return '';
+            const d = date instanceof firebase.firestore.Timestamp ? date.toDate() : new Date(date);
+            return d.getFullYear() + '-' +
+                   String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                   String(d.getDate()).padStart(2, '0');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // TOAST NOTIFICATIONS
+        // ============================================
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'toast-out 0.3s ease-out forwards';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+
+        // ============================================
+        // SERVICE WORKER REGISTRATION
+        // ============================================
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(registration => {
+                    console.log('Service Worker registered:', registration);
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('VoiceMemo app initialized');
+        });
+
+        // Prevent default pull-to-refresh on mobile
+        document.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Handle orientation change
+        window.addEventListener('orientationchange', () => {
+            console.log('Orientation changed');
+        });
+    </script>
+</body>
+</html>
