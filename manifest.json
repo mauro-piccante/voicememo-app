@@ -1,0 +1,63 @@
+{
+  "name": "VoiceMemo - Registra e Trascrivi",
+  "short_name": "VoiceMemo",
+  "description": "Un'app per registrare, trascrivere e salvare i tuoi memo vocali con sincronizzazlone cloud",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#FF6B35",
+  "background_color": "#1A1A1A",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23FF6B35' width='192' height='192'/><circle cx='96' cy='96' r='50' fill='%23FFFFFF'/><path d='M96 70 L96 122 M80 96 L112 96' stroke='%23FF6B35' stroke-width='8' stroke-linecap='round'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%23FF6B35' width='512' height='512'/><circle cx='256' cy='256' r='133' fill='%23FFFFFF'/><path d='M256 186 L256 326 M213 256 L299 256' stroke='%23FF6B35' stroke-width='21' stroke-linecap='round'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%231A1A1A' width='540' height='720'/><rect fill='%232D2D2D' width='540' height='60'/><text x='270' y='40' font-size='24' fill='%23FF6B35' text-anchor='middle' font-weight='bold'>VoiceMemo</text><circle cx='270' cy='400' r='80' fill='%23FF6B35'/><text x='270' y='410' font-size='60' text-anchor='middle' fill='%23FFFFFF'>ð¤</text></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Registra un nuovo memo",
+      "short_name": "Nuovo Memo",
+      "description": "Avvia subito la registrazione di un nuovo memo vocale",
+      "url": "/?action=record",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23FF6B35' width='96' height='96' rx='20'/><circle cx='48' cy='48' r='25' fill='%23FFFFFF'/><path d='M48 35 L48 61 M40 48 L56 48' stroke='%23FF6B35' stroke-width='4' stroke-linecap='round'/></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Visualizza memo",
+      "short_name": "I miei memo",
+      "description": "Visualizza tutti i tuoi memo salvati",
+      "url": "/?action=list",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23FF6B35' width='96' height='96' rx='20'/><rect x='20' y='25' width='56' height='15' fill='%23FFFFFF'/><rect x='20' y='47' width='56' height='15' fill='%23FFFFFF'/><rect x='20' y='69' width='40' height='12' fill='%23FFFFFF'/></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "categories": ["productivity", "utilities"]
+}
