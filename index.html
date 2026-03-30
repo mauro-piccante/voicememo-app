@@ -1010,12 +1010,15 @@
         // GLOBAL STATE
         // ============================================
         let isRecording = false;
+        let userWantsToStop = false;
         let recordingStartTime = null;
         let currentUser = null;
         let currentMemoId = null;
         let recognition = null;
         let currentTranscription = '';
         let interimTranscription = '';
+        let wakeLock = null;
+        let silentAudioEl = null;
 
         // Check Speech Recognition API support
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1131,6 +1134,68 @@
         }
 
         // ============================================
+        // WAKE LOCK (prevent screen from turning off)
+        // ============================================
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake Lock released');
+                    });
+                    console.log('Wake Lock acquired');
+                }
+            } catch (err) {
+                console.log('Wake Lock failed:', err.message);
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+        }
+
+        // Re-acquire wake lock when page becomes visible again
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && isRecording) {
+                requestWakeLock();
+            }
+        });
+
+        // ============================================
+        // SILENT AUDIO KEEP-ALIVE (prevents iOS from suspending the page)
+        // ============================================
+        function startSilentAudio() {
+            if (silentAudioEl) return;
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                // Create a silent oscillator
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = 0.001; // Nearly silent
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                silentAudioEl = { context: audioCtx, oscillator, gainNode };
+                console.log('Silent audio keep-alive started');
+            } catch (e) {
+                console.log('Silent audio failed:', e.message);
+            }
+        }
+
+        function stopSilentAudio() {
+            if (silentAudioEl) {
+                try {
+                    silentAudioEl.oscillator.stop();
+                    silentAudioEl.context.close();
+                } catch (e) {}
+                silentAudioEl = null;
+            }
+        }
+
+        // ============================================
         // SPEECH RECOGNITION
         // ============================================
         function initializeSpeechRecognition() {
@@ -1146,6 +1211,7 @@
 
             recognition.onstart = () => {
                 isRecording = true;
+                userWantsToStop = false;
                 currentTranscription = '';
                 interimTranscription = '';
                 recordButton.classList.add('recording');
@@ -1154,6 +1220,8 @@
                 transcriptionDisplay.classList.remove('empty');
                 updateTranscriptionDisplay();
                 startRecordingTimer();
+                requestWakeLock();
+                startSilentAudio();
             };
 
             recognition.onresult = (event) => {
@@ -1172,27 +1240,46 @@
             recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
                 if (event.error === 'no-speech') {
-                    showToast('Nessun discorso rilevato. Riprova.', 'info');
-                } else if (event.error !== 'aborted') {
+                    // Don't show toast, just silently restart
+                } else if (event.error === 'aborted' || event.error === 'network') {
+                    // These happen on iOS when backgrounded, auto-restart will handle it
+                    console.log('Recognition interrupted:', event.error);
+                } else {
                     showToast('Errore di riconoscimento vocale: ' + event.error, 'error');
                 }
             };
 
             recognition.onend = () => {
-                if (isRecording) {
-                    isRecording = false;
-                    recordButton.classList.remove('recording');
-                    recordIndicator.style.display = 'none';
-                    transcriptionDisplay.classList.remove('recording');
-                    stopRecordingTimer();
+                if (isRecording && !userWantsToStop) {
+                    // Auto-restart: recognition ended unexpectedly (silence, background, iOS suspension)
+                    console.log('Auto-restarting speech recognition...');
+                    setTimeout(() => {
+                        if (isRecording && !userWantsToStop) {
+                            try {
+                                recognition.start();
+                            } catch (e) {
+                                console.log('Auto-restart failed:', e.message);
+                            }
+                        }
+                    }, 300);
+                    return;
+                }
 
-                    if (currentTranscription.trim()) {
-                        saveTranscription();
-                    } else {
-                        transcriptionDisplay.classList.add('empty');
-                        transcriptionDisplay.textContent = 'Inizia a parlare...';
-                        recordingTimer.textContent = '';
-                    }
+                // User explicitly stopped
+                isRecording = false;
+                recordButton.classList.remove('recording');
+                recordIndicator.style.display = 'none';
+                transcriptionDisplay.classList.remove('recording');
+                stopRecordingTimer();
+                releaseWakeLock();
+                stopSilentAudio();
+
+                if (currentTranscription.trim()) {
+                    saveTranscription();
+                } else {
+                    transcriptionDisplay.classList.add('empty');
+                    transcriptionDisplay.textContent = 'Inizia a parlare...';
+                    recordingTimer.textContent = '';
                 }
             };
 
@@ -1215,9 +1302,12 @@
             }
 
             if (isRecording) {
+                // User explicitly wants to stop
+                userWantsToStop = true;
                 recognition.stop();
             } else {
                 try {
+                    userWantsToStop = false;
                     recognition.start();
                 } catch (e) {
                     // Recognition already started
