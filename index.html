@@ -273,20 +273,48 @@
             background: var(--text-secondary);
         }
 
+        /* Memo Swipe Container */
+        .memo-swipe-container {
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 8px;
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+        }
+
+        .memo-swipe-delete {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 90px;
+            background: var(--danger-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1;
+        }
+
         /* Memo Item */
         .memo-item {
             padding: 12px 20px;
-            margin-bottom: 8px;
             background: var(--dark-bg-secondary);
             border-left: 3px solid var(--primary-color);
             cursor: pointer;
-            transition: var(--transition);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .memo-item.swiping {
+            transition: none;
         }
 
         .memo-item:hover {
             background: var(--dark-bg-tertiary);
-            padding-left: 24px;
         }
 
         .memo-title {
@@ -1465,44 +1493,21 @@
             }
 
             memosList.innerHTML = memos.map(memo => `
-                <div class="memo-item" data-id="${memo.id}">
-                    <div class="memo-title">${escapeHtml(memo.title)}</div>
-                    <div class="memo-meta">
-                        <div class="memo-date">${formatDate(memo.timestamp)}</div>
-                        ${memo.duration ? `<div class="memo-duration">${memo.duration}</div>` : ''}
-                    </div>
-                    <div class="memo-preview">${escapeHtml(memo.text.substring(0, 150))}</div>
-                    <div class="memo-actions">
-                        <button class="memo-action-icon download-icon" data-action="download" data-id="${memo.id}" title="Scarica">⬇️</button>
-                        <button class="memo-action-icon copy-icon" data-action="copy" data-id="${memo.id}" title="Copia testo">📋</button>
-                        <button class="memo-action-icon delete-icon" data-action="delete" data-id="${memo.id}" title="Elimina">🗑️</button>
+                <div class="memo-swipe-container" data-id="${memo.id}">
+                    <div class="memo-swipe-delete">Elimina</div>
+                    <div class="memo-item" data-id="${memo.id}">
+                        <div class="memo-title">${escapeHtml(memo.title)}</div>
+                        <div class="memo-meta">
+                            <div class="memo-date">${formatDate(memo.timestamp)}</div>
+                            ${memo.duration ? `<div class="memo-duration">${memo.duration}</div>` : ''}
+                        </div>
+                        <div class="memo-preview">${escapeHtml(memo.text.substring(0, 150))}</div>
                     </div>
                 </div>
             `).join('');
 
-            // Action icons in memo list
-            document.querySelectorAll('.memo-action-icon').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const action = btn.getAttribute('data-action');
-                    const memoId = btn.getAttribute('data-id');
-                    const memo = memos.find(m => m.id === memoId);
-                    if (!memo) return;
-                    
-                    if (action === 'download') {
-                        downloadMemoFile(memo);
-                    } else if (action === 'copy') {
-                        navigator.clipboard.writeText(memo.text).then(() => {
-                            showToast('Testo copiato', 'success');
-                        }).catch(() => {
-                            showToast('Errore nella copia', 'error');
-                        });
-                    } else if (action === 'delete') {
-                        currentMemoId = memoId;
-                        deleteModal.classList.add('active');
-                    }
-                });
-            });
+            // Swipe-to-delete handlers
+            initSwipeToDelete(memos);
 
             // Add click handlers
             document.querySelectorAll('.memo-item').forEach(item => {
@@ -1510,6 +1515,86 @@
                     const memoId = item.getAttribute('data-id');
                     showMemoDetail(memos.find(m => m.id === memoId));
                 });
+            });
+        }
+
+        // ============================================
+        // SWIPE TO DELETE (iOS-style)
+        // ============================================
+        function initSwipeToDelete(memos) {
+            document.querySelectorAll('.memo-swipe-container').forEach(container => {
+                const item = container.querySelector('.memo-item');
+                const deleteBtn = container.querySelector('.memo-swipe-delete');
+                const memoId = container.getAttribute('data-id');
+                let startX = 0;
+                let currentX = 0;
+                let isSwiping = false;
+                let isOpen = false;
+                const THRESHOLD = 90;
+
+                item.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                    currentX = 0;
+                    isSwiping = true;
+                    item.classList.add('swiping');
+                }, { passive: true });
+
+                item.addEventListener('touchmove', (e) => {
+                    if (!isSwiping) return;
+                    const diff = e.touches[0].clientX - startX;
+
+                    if (isOpen) {
+                        // Already open: allow closing (swipe right) or stay
+                        currentX = Math.min(0, Math.max(-THRESHOLD * 2, diff - THRESHOLD));
+                    } else {
+                        // Only allow swipe left
+                        currentX = Math.min(0, diff);
+                    }
+
+                    // Rubber band effect
+                    const translateX = currentX < -THRESHOLD ? -THRESHOLD - (Math.abs(currentX) - THRESHOLD) * 0.2 : currentX;
+                    item.style.transform = `translateX(${translateX}px)`;
+                }, { passive: true });
+
+                item.addEventListener('touchend', () => {
+                    isSwiping = false;
+                    item.classList.remove('swiping');
+
+                    if (currentX < -THRESHOLD / 2) {
+                        // Snap open
+                        item.style.transform = `translateX(-${THRESHOLD}px)`;
+                        isOpen = true;
+                    } else {
+                        // Snap closed
+                        item.style.transform = 'translateX(0)';
+                        isOpen = false;
+                    }
+                }, { passive: true });
+
+                // Delete on tap of red area
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    currentMemoId = memoId;
+                    // Animate out
+                    item.style.transform = `translateX(-${container.offsetWidth}px)`;
+                    container.style.transition = 'max-height 0.3s ease, opacity 0.3s ease';
+                    container.style.maxHeight = container.offsetHeight + 'px';
+                    setTimeout(() => {
+                        container.style.maxHeight = '0';
+                        container.style.opacity = '0';
+                    }, 200);
+                    setTimeout(() => {
+                        deleteModal.classList.add('active');
+                    }, 400);
+                });
+
+                // Close swipe when tapping elsewhere
+                document.addEventListener('touchstart', (e) => {
+                    if (isOpen && !container.contains(e.target)) {
+                        item.style.transform = 'translateX(0)';
+                        isOpen = false;
+                    }
+                }, { passive: true });
             });
         }
 
