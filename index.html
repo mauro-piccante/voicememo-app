@@ -238,6 +238,71 @@
             color: var(--text-primary);
         }
 
+        /* Search Bar */
+        .search-bar {
+            padding: 12px 20px;
+            flex-shrink: 0;
+            background: var(--dark-bg);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background: var(--dark-bg-secondary);
+            color: var(--text-primary);
+            font-size: 15px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .search-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        .search-clear {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: var(--text-tertiary);
+            color: var(--dark-bg);
+            border-radius: var(--radius-full);
+            font-size: 14px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .search-clear.visible {
+            display: flex;
+        }
+
         /* Memos List Area */
         .memos-container {
             flex: 1;
@@ -934,16 +999,17 @@
             </div>
         </div>
 
-        <!-- Memos List -->
-        <div class="memos-container">
-            <div class="memos-scroll" id="memosList">
-                <div class="empty-state">
-                    <div class="empty-state-icon">🎤</div>
-                    <div class="empty-state-text">Nessun memo ancora</div>
-                    <div class="empty-state-subtext">Inizia a registrare il tuo primo memo vocale premendo il pulsante sottostante</div>
-                </div>
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="searchInput" placeholder="Cerca nei memo...">
+                <button class="search-clear" id="searchClear">✕</button>
             </div>
+        </div>
 
+        <!-- Recording Area + Memos List -->
+        <div class="memos-container">
             <!-- Recording Area -->
             <div class="recording-area">
                 <div class="record-button-container">
@@ -966,6 +1032,15 @@
                         <option value="de-DE">🇩🇪 Deutsch</option>
                         <option value="pt-BR">🇧🇷 Português</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- Memos List (bottom) -->
+            <div class="memos-scroll" id="memosList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">🎤</div>
+                    <div class="empty-state-text">Nessun memo ancora</div>
+                    <div class="empty-state-subtext">Inizia a registrare il tuo primo memo vocale</div>
                 </div>
             </div>
         </div>
@@ -1092,6 +1167,9 @@
         const logoutCancelBtn = document.getElementById('logoutCancelBtn');
         const logoutConfirmBtn = document.getElementById('logoutConfirmBtn');
         const copyBtn = document.getElementById('copyBtn');
+        const searchInput = document.getElementById('searchInput');
+        const searchClear = document.getElementById('searchClear');
+        let allMemos = []; // Store all memos for filtering
 
         // ============================================
         // AUTHENTICATION
@@ -1470,7 +1548,13 @@
                     });
                 });
 
-                renderMemosList(memos);
+                allMemos = memos;
+                const query = searchInput.value.trim().toLowerCase();
+                if (query) {
+                    filterAndRenderMemos(query);
+                } else {
+                    renderMemosList(memos);
+                }
                 // Scroll to bottom so newest memo is visible
                 setTimeout(() => {
                     memosList.scrollTop = memosList.scrollHeight;
@@ -1601,6 +1685,40 @@
                 }, { passive: true });
             });
         }
+
+        // ============================================
+        // SEARCH
+        // ============================================
+        function filterAndRenderMemos(query) {
+            const filtered = allMemos.filter(memo => {
+                const q = query.toLowerCase();
+                return memo.title.toLowerCase().includes(q) ||
+                       memo.text.toLowerCase().includes(q);
+            });
+            renderMemosList(filtered);
+        }
+
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim();
+            searchClear.classList.toggle('visible', query.length > 0);
+            if (query) {
+                filterAndRenderMemos(query);
+            } else {
+                renderMemosList(allMemos);
+                setTimeout(() => {
+                    memosList.scrollTop = memosList.scrollHeight;
+                }, 50);
+            }
+        });
+
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            searchClear.classList.remove('visible');
+            renderMemosList(allMemos);
+            setTimeout(() => {
+                memosList.scrollTop = memosList.scrollHeight;
+            }, 50);
+        });
 
         // ============================================
         // MEMO DETAIL VIEW
