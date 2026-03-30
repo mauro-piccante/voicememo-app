@@ -598,6 +598,16 @@
             transform: translateY(-1px);
         }
 
+        .btn-continue {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-continue:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
         .btn-copy {
             background: var(--dark-bg-tertiary);
             color: var(--text-primary);
@@ -609,16 +619,95 @@
             transform: translateY(-1px);
         }
 
+        /* Save Choice Modal */
+        .save-choice-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .save-choice-item {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--dark-bg-tertiary);
+            color: var(--text-primary);
+            font-size: 14px;
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .save-choice-item:hover {
+            border-color: var(--primary-color);
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .save-choice-item.new-note {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .save-choice-item .choice-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .save-choice-item .choice-preview {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         /* Recording Area */
         .recording-area {
-            padding: 24px 20px 32px;
+            padding: 16px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
             flex-shrink: 0;
-            flex-grow: 1;
-            justify-content: center;
+            transition: padding 0.3s ease;
+        }
+
+        .recording-area.compact {
+            padding: 8px 20px;
+            gap: 6px;
+        }
+
+        .recording-area.compact .record-button {
+            width: 60px;
+            height: 60px;
+            font-size: 28px;
+            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
+        }
+
+        .recording-area.compact .transcription-display {
+            min-height: 36px;
+            max-height: 60px;
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+
+        .recording-area.compact .record-button-container {
+            margin-top: 0;
+            margin-bottom: 4px;
+            gap: 6px;
+        }
+
+        .recording-area.compact .language-selector,
+        .recording-area.compact .recording-timer {
+            display: none;
         }
 
         .transcription-display {
@@ -1057,6 +1146,10 @@
             <div class="detail-text" id="detailText"></div>
         </div>
         <div class="detail-actions">
+            <button class="detail-action-btn btn-continue" id="continueRecBtn">
+                <span>🎙️</span>
+                <span>Continua</span>
+            </button>
             <button class="detail-action-btn btn-download" id="downloadBtn">
                 <span>⬇️</span>
                 <span>Scarica</span>
@@ -1069,6 +1162,15 @@
                 <span>🗑️</span>
                 <span>Elimina</span>
             </button>
+        </div>
+    </div>
+
+    <!-- Save Choice Modal -->
+    <div class="modal-overlay" id="saveChoiceModal">
+        <div class="modal">
+            <div class="modal-title">Dove salvare?</div>
+            <div class="modal-text">Aggiungi a una nota esistente o crea una nuova.</div>
+            <div class="save-choice-list" id="saveChoiceList"></div>
         </div>
     </div>
 
@@ -1169,7 +1271,12 @@
         const copyBtn = document.getElementById('copyBtn');
         const searchInput = document.getElementById('searchInput');
         const searchClear = document.getElementById('searchClear');
+        const continueRecBtn = document.getElementById('continueRecBtn');
+        const saveChoiceModal = document.getElementById('saveChoiceModal');
+        const saveChoiceList = document.getElementById('saveChoiceList');
         let allMemos = []; // Store all memos for filtering
+        let appendToMemoId = null; // When continuing a recording, append to this memo
+        let pendingTranscription = ''; // Transcription waiting for save choice
 
         // ============================================
         // AUTHENTICATION
@@ -1358,6 +1465,8 @@
                 updateTranscriptionDisplay();
                 startRecordingTimer();
                 requestWakeLock();
+                // Expand recording area when recording
+                document.querySelector('.recording-area').classList.remove('compact');
                 startSilentAudio();
             };
 
@@ -1502,31 +1611,99 @@
                 return;
             }
 
-            try {
-                const title = generateMemoTitle(currentTranscription);
-                const now = new Date();
+            // If we're appending to a specific memo (from "Continua" in detail view)
+            if (appendToMemoId) {
+                await appendToMemo(appendToMemoId, currentTranscription.trim());
+                appendToMemoId = null;
+                resetRecordingState();
+                return;
+            }
 
+            // Show choice modal: new note or append to existing
+            pendingTranscription = currentTranscription.trim();
+            showSaveChoiceModal();
+        }
+
+        function showSaveChoiceModal() {
+            let html = '<button class="save-choice-item new-note" data-action="new">+ Nuova nota</button>';
+
+            // Show recent memos (last 5) to append to
+            const recentMemos = allMemos.slice(-5).reverse();
+            recentMemos.forEach(memo => {
+                html += `
+                    <button class="save-choice-item" data-action="append" data-id="${memo.id}">
+                        <div class="choice-title">${escapeHtml(memo.title)}</div>
+                        <div class="choice-preview">${escapeHtml(memo.text.substring(0, 80))}</div>
+                    </button>
+                `;
+            });
+
+            saveChoiceList.innerHTML = html;
+            saveChoiceModal.classList.add('active');
+
+            // Bind events
+            saveChoiceList.querySelectorAll('.save-choice-item').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    saveChoiceModal.classList.remove('active');
+                    const action = btn.getAttribute('data-action');
+                    if (action === 'new') {
+                        await saveAsNewMemo(pendingTranscription);
+                    } else {
+                        const memoId = btn.getAttribute('data-id');
+                        await appendToMemo(memoId, pendingTranscription);
+                    }
+                    pendingTranscription = '';
+                    resetRecordingState();
+                });
+            });
+        }
+
+        async function saveAsNewMemo(text) {
+            try {
+                const title = generateMemoTitle(text);
                 const memoData = {
                     title: title,
-                    text: currentTranscription.trim(),
-                    timestamp: now,
+                    text: text,
+                    timestamp: new Date(),
                     duration: recordingTimer.textContent,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
-
                 await db.collection('users').doc(currentUser.uid).collection('memos').add(memoData);
-
-                showToast('Memo salvato con successo', 'success');
-
-                // Reset recording state
-                currentTranscription = '';
-                interimTranscription = '';
-                recordingTimer.textContent = '';
+                showToast('Nuova nota salvata', 'success');
                 loadUserMemos();
             } catch (error) {
                 console.error('Error saving memo:', error);
-                showToast('Errore nel salvataggio del memo: ' + error.message, 'error');
+                showToast('Errore nel salvataggio: ' + error.message, 'error');
             }
+        }
+
+        async function appendToMemo(memoId, newText) {
+            try {
+                const ref = db.collection('users').doc(currentUser.uid).collection('memos').doc(memoId);
+                const doc = await ref.get();
+                if (!doc.exists) {
+                    showToast('Nota non trovata', 'error');
+                    return;
+                }
+                const existingText = doc.data().text || '';
+                await ref.update({
+                    text: existingText + '\n\n' + newText,
+                    timestamp: new Date()
+                });
+                showToast('Testo aggiunto alla nota', 'success');
+                loadUserMemos();
+            } catch (error) {
+                console.error('Error appending to memo:', error);
+                showToast('Errore: ' + error.message, 'error');
+            }
+        }
+
+        function resetRecordingState() {
+            currentTranscription = '';
+            interimTranscription = '';
+            recordingTimer.textContent = '';
+            transcriptionDisplay.classList.add('empty');
+            transcriptionDisplay.textContent = 'Inizia a parlare...';
         }
 
         async function loadUserMemos() {
@@ -1687,6 +1864,25 @@
         }
 
         // ============================================
+        // COMPACT RECORDING AREA ON SCROLL
+        // ============================================
+        const recordingArea = document.querySelector('.recording-area');
+        let lastScrollTop = 0;
+
+        memosList.addEventListener('scroll', () => {
+            const st = memosList.scrollTop;
+            if (st > 30 && !isRecording) {
+                recordingArea.classList.add('compact');
+            } else if (st <= 10) {
+                recordingArea.classList.remove('compact');
+            }
+            lastScrollTop = st;
+        }, { passive: true });
+
+        // Also: expand when starting to record
+        const origOnStart = recognition ? recognition.onstart : null;
+
+        // ============================================
         // SEARCH
         // ============================================
         function filterAndRenderMemos(query) {
@@ -1734,6 +1930,26 @@
         detailCloseBtn.addEventListener('click', () => {
             memoDetail.classList.remove('active');
             currentMemoId = null;
+        });
+
+        // Continue recording into existing memo
+        continueRecBtn.addEventListener('click', () => {
+            appendToMemoId = currentMemoId;
+            memoDetail.classList.remove('active');
+
+            // Start recording
+            if (!recognition) {
+                initializeSpeechRecognition();
+            }
+            if (recognition && !isRecording) {
+                try {
+                    userWantsToStop = false;
+                    recognition.start();
+                    showToast('Continua a registrare...', 'info');
+                } catch (e) {
+                    console.log('Continue rec failed:', e.message);
+                }
+            }
         });
 
         function downloadMemoFile(data) {
