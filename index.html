@@ -1459,7 +1459,7 @@
                     .collection('users')
                     .doc(currentUser.uid)
                     .collection('memos')
-                    .orderBy('createdAt', 'desc')
+                    .orderBy('createdAt', 'asc')
                     .get();
 
                 const memos = [];
@@ -1471,6 +1471,10 @@
                 });
 
                 renderMemosList(memos);
+                // Scroll to bottom so newest memo is visible
+                setTimeout(() => {
+                    memosList.scrollTop = memosList.scrollHeight;
+                }, 100);
             } catch (error) {
                 console.error('Error loading memos:', error);
                 // Handle Firestore not configured gracefully
