@@ -1100,6 +1100,22 @@
                 currentUser = user;
                 updateUserUI();
                 showMainScreen();
+                // Auto-start recording when app loads and user is logged in
+                setTimeout(() => {
+                    if (!isRecording) {
+                        if (!recognition) {
+                            initializeSpeechRecognition();
+                        }
+                        if (recognition) {
+                            try {
+                                userWantsToStop = false;
+                                recognition.start();
+                            } catch (e) {
+                                console.log('Auto-start failed:', e.message);
+                            }
+                        }
+                    }
+                }, 500);
             } else {
                 currentUser = null;
                 showLoginScreen();
