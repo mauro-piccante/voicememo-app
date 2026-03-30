@@ -671,43 +671,37 @@
 
         /* Recording Area */
         .recording-area {
-            padding: 16px 20px;
+            padding: 12px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             flex-shrink: 0;
-            transition: padding 0.3s ease;
+            transition: all 0.3s ease;
         }
 
-        .recording-area.compact {
-            padding: 8px 20px;
-            gap: 6px;
-        }
-
-        .recording-area.compact .record-button {
-            width: 60px;
-            height: 60px;
-            font-size: 28px;
-            box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3);
-        }
-
-        .recording-area.compact .transcription-display {
-            min-height: 36px;
-            max-height: 60px;
-            padding: 8px 12px;
-            font-size: 13px;
-        }
-
-        .recording-area.compact .record-button-container {
-            margin-top: 0;
-            margin-bottom: 4px;
-            gap: 6px;
-        }
-
-        .recording-area.compact .language-selector,
-        .recording-area.compact .recording-timer {
+        /* Default: transcription, timer, language hidden until recording */
+        .recording-area .transcription-display,
+        .recording-area .recording-timer,
+        .recording-area .language-selector {
             display: none;
+        }
+
+        /* When recording: show everything */
+        .recording-area.active .transcription-display {
+            display: flex;
+        }
+
+        .recording-area.active .transcription-display:not(.empty) {
+            display: block;
+        }
+
+        .recording-area.active .recording-timer {
+            display: block;
+        }
+
+        .recording-area.active .language-selector {
+            display: flex;
         }
 
         .transcription-display {
@@ -756,8 +750,8 @@
         }
 
         .record-button {
-            width: 200px;
-            height: 200px;
+            width: 80px;
+            height: 80px;
             border-radius: var(--radius-full);
             border: none;
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
@@ -766,11 +760,18 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 80px;
-            box-shadow: 0 12px 48px rgba(255, 107, 53, 0.4);
-            transition: var(--transition);
+            font-size: 36px;
+            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
+        }
+
+        .record-button.recording {
+            width: 120px;
+            height: 120px;
+            font-size: 52px;
+            box-shadow: 0 12px 48px rgba(255, 107, 53, 0.4);
         }
 
         .record-button::before {
@@ -972,10 +973,10 @@
 
         /* Responsive design */
         @media (max-width: 480px) {
-            .record-button {
-                width: 170px;
-                height: 170px;
-                font-size: 68px;
+            .record-button.recording {
+                width: 100px;
+                height: 100px;
+                font-size: 44px;
             }
 
             .app-title {
@@ -1465,8 +1466,8 @@
                 updateTranscriptionDisplay();
                 startRecordingTimer();
                 requestWakeLock();
-                // Expand recording area when recording
-                document.querySelector('.recording-area').classList.remove('compact');
+                // Show recording UI
+                document.querySelector('.recording-area').classList.add('active');
                 startSilentAudio();
             };
 
@@ -1519,6 +1520,7 @@
                 stopRecordingTimer();
                 releaseWakeLock();
                 stopSilentAudio();
+                document.querySelector('.recording-area').classList.remove('active');
 
                 if (currentTranscription.trim()) {
                     saveTranscription();
@@ -1862,25 +1864,6 @@
                 }, { passive: true });
             });
         }
-
-        // ============================================
-        // COMPACT RECORDING AREA ON SCROLL
-        // ============================================
-        const recordingArea = document.querySelector('.recording-area');
-        let lastScrollTop = 0;
-
-        memosList.addEventListener('scroll', () => {
-            const st = memosList.scrollTop;
-            if (st > 30 && !isRecording) {
-                recordingArea.classList.add('compact');
-            } else if (st <= 10) {
-                recordingArea.classList.remove('compact');
-            }
-            lastScrollTop = st;
-        }, { passive: true });
-
-        // Also: expand when starting to record
-        const origOnStart = recognition ? recognition.onstart : null;
 
         // ============================================
         // SEARCH
