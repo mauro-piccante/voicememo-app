@@ -509,12 +509,14 @@
 
         /* Recording Area */
         .recording-area {
-            padding: 20px;
+            padding: 24px 20px 32px;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 16px;
             flex-shrink: 0;
+            flex-grow: 1;
+            justify-content: center;
         }
 
         .transcription-display {
@@ -557,13 +559,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 16px;
+            margin-bottom: 12px;
+            margin-top: 8px;
         }
 
         .record-button {
-            width: 140px;
-            height: 140px;
+            width: 200px;
+            height: 200px;
             border-radius: var(--radius-full);
             border: none;
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
@@ -572,8 +575,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 56px;
-            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.3);
+            font-size: 80px;
+            box-shadow: 0 12px 48px rgba(255, 107, 53, 0.4);
             transition: var(--transition);
             position: relative;
             overflow: hidden;
@@ -779,9 +782,9 @@
         /* Responsive design */
         @media (max-width: 480px) {
             .record-button {
-                width: 140px;
-                height: 140px;
-                font-size: 56px;
+                width: 170px;
+                height: 170px;
+                font-size: 68px;
             }
 
             .app-title {
@@ -904,6 +907,17 @@
 
             <!-- Recording Area -->
             <div class="recording-area">
+                <div class="record-button-container">
+                    <button class="record-button" id="recordButton" title="Registra">🎙️</button>
+                    <div class="record-indicator" id="recordIndicator" style="display: none;">
+                        <div class="record-indicator-dot"></div>
+                        <span>Registrazione in corso</span>
+                    </div>
+                </div>
+                <div class="recording-timer" id="recordingTimer"></div>
+                <div class="transcription-display empty" id="transcriptionDisplay">
+                    Inizia a parlare...
+                </div>
                 <div class="language-selector">
                     <select id="languageSelect" class="lang-select">
                         <option value="it-IT">🇮🇹 Italiano</option>
@@ -913,17 +927,6 @@
                         <option value="de-DE">🇩🇪 Deutsch</option>
                         <option value="pt-BR">🇧🇷 Português</option>
                     </select>
-                </div>
-                <div class="transcription-display empty" id="transcriptionDisplay">
-                    Inizia a parlare...
-                </div>
-                <div class="recording-timer" id="recordingTimer"></div>
-                <div class="record-button-container">
-                    <button class="record-button" id="recordButton" title="Registra">🎙️</button>
-                    <div class="record-indicator" id="recordIndicator" style="display: none;">
-                        <div class="record-indicator-dot"></div>
-                        <span>Registrazione in corso</span>
-                    </div>
                 </div>
             </div>
         </div>
